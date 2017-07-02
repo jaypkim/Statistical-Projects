@@ -1,7 +1,7 @@
 # Statistical Projects by Jay Kim
 
-The above files are projects that I have undertaken during my undergraduate career. The Browsing  and the Team_PKL files
-were created for DataFest 2016 and DataFest 2017 respectively and were thus team efforts. 
+The above files are projects that I have undertaken during my undergraduate career. The Browsing and the Market Segmentation projects
+were created for DataFest 2016 and DataFest 2017 respectively and were thus team efforts.
 
 ## Data Visualization Projects
 
