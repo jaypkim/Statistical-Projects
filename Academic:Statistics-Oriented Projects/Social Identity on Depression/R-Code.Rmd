@@ -1,0 +1,700 @@
+---
+title: "Social Interactions Most Influential in Preventing and Treating Depression"
+author: "Jay Kim"
+date: "December 3, 2014"
+output: pdf_document
+---
+## Abstract:
+The study focused on identifying and determining the impact of variables influential in affecting the depressive symptoms of an individual. The variables used were presence of support, adequacy of support, number of close friends, family monthly poverty index, age, gender, type of work, race, Spanish speaking, other language speaking, hours worked, and an interaction between gender and family monthly poverty index. To examine the data and fulfill the study's goals, sub-models based on characteristics of the variables chosen were constructed and tested with a full model. Through performing multiple linear regression and bivariate analyses, it was determined that variables under the social sub-model had the greatest predictive value and the largest impact on depressive symptoms. The discussion and conclusion focused on the impact each variable and sub-model had on depressive symptoms and explored its implications on depression treatment strategies today.
+
+## Introduction:
+
+It is estimated that over 9 million Americans suffer from depression. As mental illnesses are slowly gaining acceptance within mainstream society, it is becoming more important to identify factors contributing to depression and the extent these factors affect depression. 
+
+Based on the available data, this study focused on factors of depression related to the social interactions of an individual, an individual's economic status, and an individual's cultural heritage. In particular, this study considered the support system of the participant, the participant's family poverty index, work habits or lack thereof, age, gender, interaction between family poverty index and gender, racial identity, and language spoken.
+
+A support system, defined for the purposes of this study as the presence and adequacy of support for an individual as well as the number of close friends, is critical to both the prevention and coping of depression. It should be noted that a person's social interactions and thus support system may depend on other factors such as age and gender. Onset of depression is also highly dependent on age and gender, as it is noted that those over 32 and females have higher incidence of depression. 
+
+Similarly, the income of an individual's family affects the number and severity of stressors an individual may face. It was believed that an interaction term existed between gender and a family's poverty level index as poverty affects genders in different manners, most notably due to gender roles and expectations. The study sought to account for work habits such as the hours worked at a job and employment status as well since they may also affect the stressors of an individual's economic condition. Employment status was thus explored as well. For the purposes of this study, unemployment will refer to a lack of job.
+
+It is known that immigrants, or those that identify strongly with their cultural identity, face greater stressors due to either assimilation or microaggressions. To account for this, race was chosen as a variable. However, it was recognized that race was insufficient to account for cultural identity as certain individuals may not associate themselves strongly with their race. To test an individual's association with their race, language spoken at home was factored into the model as those that speak their native language are more likely to identify strongly with other aspects of his/her culture.
+
+## Methods:
+
+To obtain the model, the program R 3.1.1 was used with RStudio 0.98.1049. Data was gathered from the 2007-2008 NHANES survey at http://wwwn.cdc.gov/nchs/nhanes/search/nhanes_continuous.aspx from the Depression Screener, Acculturation, Demographics Variables and Sample Weights, Income, Social Support, and Occupation datasets. The criteria for selecting participants for the NHANES survey was a 4-stage sample design, aimed with gathering a sample proportional to the distribution found in the national population, with oversampling to the Mexican-American,black, low income, adolescent, and elderly populations. For the data gathered in this study, 2968 individuals were used in the study. All individuals are 40 years or older. To account for missing data, an assumption was made that data was missing at random and a complete case analysis was used.
+
+Due to limited data, a depression index was constructed to measure the state of depression of an individual relative to the sample. To do so, 7 different depression indicators were standardized and added.  
+
+The model was created with the depression index as the outcome variable and predictor variables Presence of Support, Adequacy of Support, Number of Close Friends, Family Monthly Poverty Index, Gender, Gender*Family Monthly Poverty Index, Age, Hours Worked, Type of Work, Race, and Spanish Speaking.
+
+$$Depression \, Index= \beta_0 + \beta_1 Presence \, of \, Support + \beta_2 Adequacy \, of \, Support + \beta_3 Number \, of \, Close \, Friends + $$
+$$\beta_4 Family \, Monthly \, Poverty \, Index + \beta_5 Gender + \beta_6 Gender*Family \, Monthly \, Poverty \, Index + \beta_7 Age + $$
+$$\beta_8 Hours \, Worked + \beta_9 Unemployed \, but \, Looking \, for \, Work + \beta_{10} Unemployed \, and \, Not \, Looking \, for \, Work +$$
+$$\beta_{11} Hispanic (not \, Mexican-American) + \beta_{12} White (non-Hispanic) + \beta_{13} Black (non-Hispanic) +$$
+$$\beta_{14} Other \, Races + \beta_{15} Spanish \, Speaking + \beta_{16} Other \, Languages$$
+
+To create the full model, it was necessary to check the assumptions of a multiple regression model. To do so, a residual plot was created and checked for the absence of patterns to suggest homoscedasticity. After observing any possible patterns within the residual plot, a histogram of the depression index was constructed. This plot was to check the overall shape of the data as well as note the existence of any  possible influential points for future reference. The linearity assumption was tested through constructing a plot of each variable against the depression index. Distribution of the data of the variable was also tested through univariate analysis.
+
+Adjusted variable plots and simple linear regressions of each term were then created to visualize and quantify the contribution of each term to the model's accuracy. Using backward stepwise elimination, variables with limited practical importance and negative adjusted R-squared values and high p-values were eliminated. To detect any multicollinearity, a scatterplot matrix was created and VIF was calculated. To verify any influential points, plots of standardized residuals that displayed the leverage of each point were created (code shown in source file). Any influential points will be discarded due to their influence on the data and the model's accuracy after assessing whether the point is a fluke or has meaningful implications. Distributions of each variable was also plotted to observe any interesting trends in the raw data itself. Distributions of the full model and the sub-models' fitted values will be compared against the depression index to observe any possible differences.
+
+To create sub-models representing social, economic, and cultural identities, variables were chosen based on their implications on the individual. After determining the variables necessary for each model, these sub-models were created and a F-test was conducted against the full model to see the statistical significance of these variables.
+  
+  
+```{r echo=FALSE, results='hide',message=F,warning=F}
+## Codebook:
+library(SASxport)
+income=read.xport("INQ_E.xpt")
+social=read.xport("SSQ_E.xpt")
+culture=read.xport("ACQ_E.xpt")
+demograph=read.xport("DEMO_E.xpt")
+job=read.xport("OCQ_E.xpt")
+dep=read.xport("DPQ_E.xpt")
+
+## Allowing the data to include unemployed and the support variable
+## (Originally excluded as hours and more support variable excluded
+## these values)
+unemployed=job[which(job$OCD150>2 & job$OCD150<7),]
+unemployed$OCQ180=0
+employed=job[which(job$OCD150<3),]
+completejob=rbind(employed,unemployed)
+
+nofriends=social[which(social$SSQ011>1),]
+nofriends$SSQ031=0
+friend=social[which(social$SSQ011>0),]
+completesocial=rbind(friend,nofriends)
+
+#Merging the Datasets
+completeall1=merge(completesocial,demograph,by="SEQN")
+all2=merge(completeall1,culture,by="SEQN")
+all3=merge(all2,income,by="SEQN")
+all4=merge(all3,completejob,by="SEQN")
+all5=merge(all4,dep,by="SEQN")
+all=subset(all5, select=c("SEQN","SSQ011","SSQ031","SSQ061","INDFMMPI","RIDAGEYR","RIAGENDR","OCD150","OCQ180","RIDRETH1","ACD010A","ACD010B","ACD010C","DPQ010","DPQ020","DPQ030","DPQ050","DPQ060","DPQ070","DPQ090"))
+
+## Changing all language variables to indicator variables (value=0 if false)
+all$ACD010A[is.na(all$ACD010A)]=0
+all$ACD010B[is.na(all$ACD010B)]=0
+all$ACD010C[is.na(all$ACD010C)]=0
+
+#Depression Index:
+
+dp1=scale(all$DPQ010)
+dp2=scale(all$DPQ020)
+dp3=scale(all$DPQ030)
+dp4=scale(all$DPQ050)
+dp5=scale(all$DPQ060)
+dp6=scale(all$DPQ070)
+dp7=scale(all$DPQ090)
+dpi=dp1+dp2+dp3+dp4+dp5+dp6+dp7
+all$dpi=dpi
+
+#Re-coding variables:
+
+#Changing all language variables to indicator variables (value=1 if true)
+all$ACD010B=ifelse(all$ACD010B==8,1,all$ACD010B)
+all$ACD010C=ifelse(all$ACD010C==9,1,all$ACD010C)
+
+#Males have value=1 and females=0
+all$RIAGENDR=ifelse(all$RIAGENDR==2,0,all$RIAGENDR)
+
+# Changing emotional support absence into 0 and eliminating 
+# refused or don't know values
+all$SSQ011=ifelse(all$SSQ011==2,0,all$SSQ011)
+all$SSQ011=ifelse(all$SSQ011>2,NA,all$SSQ011)
+
+# Changing no need for emotional support to 0
+all$SSQ031=ifelse(all$SSQ031==2,0,all$SSQ031)
+all$SSQ031=ifelse(all$SSQ031>3,NA,all$SSQ031)
+
+# Changing friends refused or don't know value to NA
+all$SSQ061=ifelse(all$SSQ061>998,NA,all$SSQ061)
+
+# Changing hours refused or don't know value to NA
+all$OCQ180=ifelse(all$OCQ180>998,NA,all$OCQ180)
+
+# Changing type of work refused values to NA
+all$OCD150=ifelse(all$OCD150>5,NA,all$OCD150)
+
+# Changing English speaking variable refused value to NA
+all$ACD010A=ifelse(all$ACD010A>1,NA,all$ACD010A)
+
+# Changing DPI refused or don't know values to NA
+all$DPQ010=ifelse(all$DPQ010>5,NA,all$DPQ010)
+all$DPQ020=ifelse(all$DPQ020>5,NA,all$DPQ020)
+all$DPQ030=ifelse(all$DPQ030>5,NA,all$DPQ030)
+all$DPQ050=ifelse(all$DPQ050>5,NA,all$DPQ050)
+all$DPQ060=ifelse(all$DPQ060>5,NA,all$DPQ060)
+all$DPQ070=ifelse(all$DPQ070>5,NA,all$DPQ070)
+all$DPQ090=ifelse(all$DPQ090>5,NA,all$DPQ090)
+
+all.comp = all[complete.cases(all),]
+
+write.csv(all.comp,file="finaldatatest.csv")
+```
+
+```{r echo=FALSE, results='hide'}
+data=read.csv("finaldatatest.csv")
+
+# Variable Names
+ID=data$SEQN
+support=data$SSQ011
+moresupport=data$SSQ031
+friends=data$SSQ061
+poverty=data$INDFMMPI
+age=data$RIDAGEYR
+gender=data$RIAGENDR
+typeofwork=data$OCD150
+typework=as.factor(typeofwork)
+hours=data$OCQ180
+races=data$RIDRETH1
+race=as.factor(races)
+eng=data$ACD010A
+span=data$ACD010B
+other=data$ACD010C
+
+# For the purposes of this model, I believe there is an interactio
+# n with 
+# gender and poverty on the effect of depression. Patriarchal 
+# roles and female gender roles tend to be intensified when an 
+#individual is in poverty. This intensification of stressors may 
+# lead to an effect on depression.
+# Preliminary exploration of data showed 0 observations of 
+# individuals with a job or business but not at work. 
+# Was considered to be acceptable and occurred due to the hours 
+# worked by these individuals being unknown, thus being excluded.
+inter=gender*poverty
+
+```
+
+```{r echo=FALSE, results='hide', fig.show='hide'}
+
+## Constructing Overall Model:
+overdata=lm(data$dpi~ support + moresupport + friends + poverty + age + gender + hours + typework + race + eng + span + other + inter, data=data)
+summary(overdata)
+
+# Adjusted R-Squared value of .1437
+# P-value of 2.2e-16
+
+# Reference variable for type of work are those working at a job 
+# or business
+# Reference variable for race is Mexican-American
+
+## Exploratory Data Analysis:
+plot(overdata)
+#Plot for viewing normality and residuals
+overdata.res=resid(overdata)
+hist(overdata.res)
+# Histogram suggests skewed right but still fairly symmetric.
+
+hist(data$dpi)
+# Very Skewed right, may need some transformations
+min(data$dpi)
+new.dpi=data$dpi+2.932
+
+# Intending to use a cubic root or log transformation. To do so, 
+# there must be no negative values. Used 2.932 as it is slightly 
+# higher than the lowest dpi value.
+# Fully aware that this will skew the results of the model, as the
+# numbers will be artificially inflated
+logdpi=log(new.dpi)
+# Using the transformed dpi
+overdata.log=lm(logdpi~ moresupport + friends + poverty + age + gender + hours + typework + race + eng + span + other + inter, data=data)
+summary(overdata.log)
+cubicdpi=(data$dpi)^(1/3)
+overdata.cubic=lm(cubicdpi~ moresupport + friends + poverty + age + gender + hours + typework + race + eng + span + other + inter, data=data)
+summary(overdata.cubic)
+# Decreased adjusted R Squared and p-values on both transformation
+# s
+# Ultimately decided not to use any transformations on the data
+
+overdata.res=resid(overdata)
+overdata.fit=overdata$fitted.values
+plot(overdata.fit, overdata.res)
+# There appears to be some linear cutoff that starts from 0 and is 
+# negatively sloped. 
+# No residuals exist past this linear cutoff
+# Most likely exists to some systematic error rather than a need 
+# for transformation etc due to the near perfect linearity.
+# Others than the systematic error, the plot appears as if it 
+# would've followed no noticable pattern. Residuals are centered 
+# around 0, but are heavily concentrated near 0 and are more 
+# dispersed the greater the distance is from 0.
+
+## Identifying Influential Points
+
+which(cooks.distance(overdata)>1)
+which(rstandard(overdata)>2)
+# Although many observations exhibit a standardized residual 
+# greater than 2,
+# none show a Cook's Distance greater than that of 1.
+
+## Multicollinearity
+library(car)
+vif(overdata)
+# In the case of race and english speaking, there was strong 
+# multicollinearity
+# Somewhat expected, seeing as they are inclusive of each other 
+# (whites have higher chance of speaking english)
+splom(data)
+
+## Adjusted Variables Plot
+avPlots(overdata)
+# Can see that friends, poverty, age, gender, unemployment, and 
+# interaction
+# have the greatest ability to explain dpi, adjusted for other 
+# variables
+
+
+## Simple Linear Regression Models For Each Variable, Checking for 
+# Linearity, and Checking Variable's Distribution
+
+fit1=lm(data$dpi~support, data=data)
+summary(fit1)
+plot(support, data$dpi)
+supportcount=table(support)
+barplot(supportcount)
+## Adjusted R-Squared value of .007279
+## P-value of 1.929e-06
+## Linearity cannot be assessed as the variable is binary
+## Support data distribution is  skewed left
+
+
+fit2=lm(data$dpi~moresupport,data=data)
+summary(fit2)
+plot(moresupport,data$dpi)
+moresupportcount=table(moresupport)
+barplot(moresupportcount)
+## Adjusted R_Squared of .04277
+## P-Value of 2.2e-16
+## Linearity cannot be assessed as the variable is binary
+## More support data distribution is  skewed right. 
+
+fit3=lm(data$dpi~friends,data=data)
+summary(fit3)
+plot(friends, data$dpi)
+hist(friends)
+##Adjusted R-Squared of .007882
+## P-Value of 7.556e-07
+## A decreasing linear pattern is shown, although there appears
+## to be less data gathered as friends increase
+## Friends distribution is skewed right
+
+fit4=lm(data$dpi~poverty,data=data)
+summary(fit4)
+plot(poverty, data$dpi)
+hist(poverty)
+## Adjusted R-Squared of .04461
+## P-Value of 2.2-16
+## Weak linearity possibly shown, although this may
+## be a result of a lack of data. Individuals with
+## poverty index greater than 5 appears to not follow
+## linearity (begins to show increase in dpi)
+## Poverty distribution appears to be somewhat bimodal
+## Appears to be skewed right, excluding the low frequency
+## of those with value of 0 and high frequency of those with
+## value of 5.
+## Most likely due to the way data was collected, with 5 actually ## being 5 or greater
+
+fit5=lm(data$dpi~age,data=data)
+summary(fit5)
+plot(age, data$dpi)
+hist(age)
+## Adjusted R_Squared of .01529
+## P-Value of 8.331e-012
+## Very weak linear association in data.
+## Appears to be a general decrease in dpi, although
+## There is a sinusoidal pattern in the plot
+## Histogram shows a uniform distribution of age
+
+fit6=lm(data$dpi~gender,data=data)
+summary(fit6)
+plot(gender, data$dpi)
+gendercount=table(gender)
+barplot(gendercount)
+## Adjusted R-Squared of .01599
+## P-Value of 2.835e-12
+## Linearity cannot be assessed as the variable is binary
+## Appears to be a uniform distribution of gender
+
+fit7=lm(data$dpi~typework,data=data)
+summary(fit7)
+plot(typework, data$dpi)
+typeworkcount=table(typework)
+barplot(typeworkcount)
+## Adjusted R-Squared value .01837
+## P-Value of 4.226e-13
+## Appears to have many observations that have high variation
+## for those not looking for work and without a job or the working 
+## population
+## Unemployed but looking for work variable was not statistically 
+## significant
+## with a p-value of .125. Unemployed and not looking for work was 
+##statistically significant.
+## Difficult to assess linearity, although it appears that 
+## employed has a lower dpi than those not(counting 3 and 4 as 
+## unemployed and 1 as employed)
+## Distribution shows mostly skewed left, with values of 3.0 
+## having very low 
+## frequencies relative to values of 1.0 and 4.0
+
+
+
+fit8=lm(data$dpi~race,data=data)
+summary(fit8)
+plot(race, data$dpi)
+racecount=table(race)
+barplot(racecount)
+## Adjusted R-Squared Value of .0002807
+## P-Value is .3051
+## Highest variation appears to be in non-Hispanic whites. Most 
+## amount of
+## observations that exceed the third quartile of the depression
+## index.
+## Hispanics had a p-value of .0793, which is a relatively low p
+## -value
+## although not statistically significant. All other variables 
+## were relatively high with p-values exceeding .5
+## Will be kept in model due to practical importance
+## Linearity cannot be assessed as this is categorical that is not 
+## ordinal
+## Since this is categorical and not ordinal, only the relative 
+## frequencies will be noted. Non-hispanic whites have the highest 
+## frequency by about 2x the nearest race. All other races are 
+## fairly similar in 
+## frequency except the 'other' race, which is notably smaller.
+
+fit9=lm(data$dpi~eng,data=data)
+summary(fit9)
+plot(eng, data$dpi)
+engcount=table(eng)
+barplot(engcount)
+## Adjusted R-Squared Value of -.0002603
+## P-Value of .633
+## Those that speak english appear to have higher depressive 
+## symptoms.
+## Should eliminate this variable from model due to negative R
+## -squared and high p-values.
+## Linearity cannot be assessed as the variable is binary
+## English speaking distribution is skewed left
+
+fit10=lm(data$dpi~span,data=data)
+summary(fit10)
+plot(span, data$dpi)
+spancount=table(span)
+barplot(spancount)
+## Adjusted R-Squared Value of .0004056
+## P-value of .1378
+## Although not statistically significant, it has a relatively
+## low p-value and is important in a practical sense.
+## Will be kept in model
+## Linearity cannot be assessed as the variable is binary
+## Data is extraordinarily skewed right
+
+fit11=lm(data$dpi~other,data=data)
+summary(fit10)
+plot(other, data$dpi)
+othercount=table(other)
+barplot(othercount)
+## Adjusted R-Squared Value of .0004056
+## P-Value of .1378
+## Linearity cannot be assessed as the variable is binary
+## Although not statistically significant, it has a relatively
+## low p-value and is important in a practical sense.
+## Will be kept in model
+## Other language variable distribution is highly skewed right
+
+fit12=lm(data$dpi~hours,data=data)
+summary(fit12)
+plot(hours, data$dpi)
+hist(hours)
+## Adjusted R-Squared Value of .01662
+## P-value of 1.078e-12
+## Appears to follow a parabolic pattern.
+## After approximately 30 hours, dpi increases
+## drastically then decreases again.
+## Suggests full-time and unemployed workers face high dpi
+## Symmetric distribution if those with 0 hours are excluded.
+## High frequency of those with 0 hours makes the distribution 
+## bimodal
+
+fit13=lm(data$dpi~inter,data=data)
+summary(fit13)
+plot(inter, data$dpi)
+hist(inter)
+## Adjusted R-Squared Value of .03191
+## P-value of 2.2e-16
+## Appears to follow a linear pattern, excluding those with a 
+## value
+## of 5, similar to the poverty pattern.
+## Distribution is skewed right, excluding value of 5, which is 
+## due to the way family poverty index was collected.
+
+## Sub-Models
+
+social=lm(data$dpi~support + moresupport + friends + gender + age,data=data)
+summary(social)
+anova(social, overdata)
+
+social.res=resid(social)
+social.fit=social$fitted.values
+plot(social.fit, social.res)
+## Adjusted R-Squared value of .07939
+## P-Value is 2.2e-16
+## All variables were shown to be statistically significant.
+## F-test showedmodel was statistically significant, with a p
+## -value of 2.2e
+## -16
+## Residuals do not appear completely random, even in the absence 
+## of the systematic error. Heavily concentrated until values 
+## reach approximately 0,
+## at which point they become more dispersed. Residuals follow a 
+## semi-bowtie shape (semi due to the systematic error)
+## However, changing the outcome variable
+## would likely affect the effectiveness of the F-test.
+## Residual patterns will be noted but no transformations will
+## be used to not sacrifice the integrity of the F-test.
+
+economic=lm(data$dpi~poverty + hours + typework + inter,data=data)
+summary(economic)
+anova(economic, overdata)
+
+economic.res=resid(economic)
+economic.fit=economic$fitted.values
+plot(economic.fit, economic.res)
+## Adjusted R-Squared Value of .05541
+## P-Value is 2.2e-16
+## Type of work variable was not statistically signficant unde F
+## -test, 
+## however P-value was .1093866, which is acceptable to some
+## F-test showed model was statistically significant
+## Only poverty, unemployed and not looking for work, and 
+##interaction variables
+## were statistically significant under economic model
+## Interaction term was included within economic identity as
+## it involved the stresses derived from the economic condition
+## moreso than affecting the social interactions of an
+## individual
+## Residuals do not appear randomized. Residuals follow a semi-fan 
+## pattern, where residuals begin with low values but begin to fan 
+## (disperse) outwards
+## as fitted values increase. 
+
+cultural=lm(data$dpi~race + span + other, data=data)
+summary(cultural)
+anova(cultural, overdata)
+
+cultural.res=resid(cultural)
+cultural.fit=cultural$fitted.values
+plot(cultural.fit, cultural.res)
+## Adjusted R-Squared value of .001605
+## P-Value of .09613
+## No variables were statistically significant, although Hispanic 
+## (non-Mexican-Americans), white (non-Hispanic), and other 
+## language speaking ## had p-values less than .10. Spanish 
+## speaking had p-value of .1005.
+## F-test showed model was statistically significant
+## Residuals are not randomized. Residuals only appear in vertical 
+## lines, as data was gathered from strictly categorical 
+## variables, most of which were 
+## binary.
+## Even ignoring the vertical lines of the data, residuals seem to 
+## follow a pattern where residuals are most concentrated with a 
+## high degree of variation where the fitted values are approximat
+## ely 0 and are more dispersed with less variation everywhere 
+## else.
+
+#Final Model:
+
+finaloverdata=lm(data$dpi~ support + moresupport +friends + poverty + age + gender + inter + hours + typework + race + span + other, data=data)
+summary(finaloverdata)
+
+finaloverdata.res=resid(finaloverdata)
+finaloverdata.fit=finaloverdata$fitted.values
+plot(finaloverdata.fit, finaloverdata.res)
+## Adjusted R-Squared value of .144
+## P-value of 2.2e-16
+## Support, more support, poverty, age, gender, unemployed and not 
+## looking for work, Hispanic (non-Mexican-American) and non
+## -Hispanic white were statistically significant variables.
+## Non-Hispanic whites was statistically significant in full model 
+## but not in simple linear regression models
+## Conversely, hours and the interaction term was statistically 
+## significant in the simple linear regression models but not the 
+## full model.
+## Residuals show a similar pattern as to the ones observed in the 
+## model 
+## prior to backwards regression. Likely due to the few variables 
+## (1) eliminated from the model. Residuals are heavily concentrat
+## ed around 
+## fitted values of 0 and residuals of 0 but begin to disperse and 
+## experience 
+## greater variation as fitted values and residuals increase.
+```
+
+## Results:
+As seen in Table 2, the social model had the greatest predictive ability amongst the sub-models according to adjusted R-Squared value with a value of .079. The economic model had an adjusted R-Squared value of .055 and the cultural model had an adjusted R-Squared value of .002. The full model had an adjusted R-Squared value of .144. All sub-models were statistically significant with a p-value of 2.2e-16 under a F-test. 
+
+The presence of support, the adequacy of support, number of friends, family monthly poverty index, age, gender, interaction term of gender and family monthly poverty index, unemployed and not looking for work, Hispanic but not Mexican-American, and non-Hispanic white were all statistically significant variables. Under the social model, all variables were statistically significant. Under the economic model, family monthly poverty index, the interaction term, and unemployed and not looking for work are all statistically significant. Under the cultural model, only Hispanics that are not Mexican-Americans and those that speak a language others than Spanish and English were statistically significant.
+
+As shown in Table 1, under a bivariate analysis with all the variables against the depression index, only unemployed but looking for work, race (parent categorical variable), Hispanic but not Mexican-American, non-Hispanic white, non-Hispanic black, other races, English speaking, Spanish speaking and other language speaking variables were not statistically significant. Under an $\alpha$ value of .15, unemployed but looking for work, Spanish speaking, and other language speaking were statistically significant. All other variables were statistically significant. 
+
+Presence of support, number of close friends, family monthly poverty index, age, gender, english speaking, hours worked, and the interaction term all had negative coefficients. The largest negative coefficient was found with gender and presence of support. Adequacy of support, unemployed and both looking for and not looking for work, Hispanic (non-Mexican-American), non-Hispanic white, non-Hispanic black, other races, Spanish speaking, and other language speaking variables all had positive coefficients. Spanish speaking, other language speaking, and adequcy of support had the largest positive coefficients. In the full model, as shown in Table 2, the only noticable difference in the direction of coefficients existed with the other language speaking variable, which became positive. In the sub-models, only the interaction term and hours worked changed directions. All other trends appeared to be unchanged.
+
+Under univariate analysis, only age and gender had a uniform distribution. Hours had somewhat of a symmetric distribution, excluding values of 0. All other variables faced skewed left or skewed right. The other language speaking  and Spanish speaking variables faced extreme skewness. Under bivariate analysis, linearity was generally shown except in the cases of family monthly poverty index and age. Bimodal distribution appeared within family monthly poverty index while a sinusoidal distribution appeared in the age variable. As seen in Figure 1, the distribution of the depression index was skewed right with almost an exponential pattern. Under both the full and social models, the distribution was approximately symmetric. Under the economic model, the distribution was skewed left. Distribution for the cultural model was difficult to determine but appears symmetric.
+
+
+There were no observations within the data that could be classified as 'unusual' with a Cook's Distance value greater than 1 and a standardized residual greater than 2. There were multicollinearity issues with race and English speaking, which was expected due to the relation between both. No other variables had multicollinearity issues. 
+
+There were interesting findings with the residuals. There was a negatively linear cutoff of residuals where past the line, no residuals existed. This was present within all models. For the full model, residuals were centered around 0 and became more dispersed the greater the residual and predicted values were. For the social model, residuals followed a semi-bowtie pattern (semi due to the linear cutoff). For the economic model, residuals began to fan out as fitted values increased. For the cultural model, residuals were highly concentrated over a large range where fitted values were approximately 0. As fitted values moved away from 0, residuals became highly dispersed over a limited range.
+
+## Discussion:
+
+The p-value of all the models were sufficiently low enough to reject the null hypothesis that the regression modelss' accuracy was due to chance alone. The relatively low adjusted R-Squared values must be considered in the context of this study. It should be noted that adjusted R-Squared values of approximately .20 are considered to be adequate within social science studies. Furthermore, this study aims to examine the impact of these variables rather than create a model to predict depression among a certain demographic. 
+
+### Interpretation of Results:
+
+One of the most interesting findings from this study is that while the existence of support can greatly decrease the symptoms of depression, if the support system is deemed poor or inadequate, depression symptoms are greater than those without a support system. This held to be true consistently across both the full and social models. Although the age and family monthly index coefficients seem to be relatively small,these variables have a rather large additive effect, as age was measured in years and the poverty index can be maxed at a value of 5. In fact, upon usage on the data available, since the youngest individual was 40 years old, the smallest effect of age on these individuals is -2.84 which exceeds the value of any other coefficient. Social variables on average had the largest effect on the depression index in both the  relevant sub-model compared to other sub-models and full model, with 3 out of 5 of its variables having a coefficient greater than .90. Out of the 3 sub-models, the social sub-model showed the greatest predictive ability, with an adjusted R-Squared value of .07939.
+
+Hours worked however only had any significant implications in the simple linear regression model. Once other variables are accounted for, the association becomes less clear as neither the full model nor the economic model showed hours worked as a statistically significant variable. The effect of gender on depressive symptoms, as supported by literature, seems to affect females more negatively than males. The interaction term presented an interesting implication. Males that were poor tended to face less depressive symptoms than those that are wealthy under the full model. However, under the economic model, there is the opposite trend. The economic model's implications should be treated with higher regard however, due to a large difference in statistical significance, where the interaction term had a p-value of .05155 compared to a p-value of 8.75e-06. Thus, it is seen that those that are poor face more depressive symptoms than those that are wealthy. However, females are still seen as being more negatively affected by depressive symptoms, even in light of economic circumstance. It was not surprising to learn that unemployment increased depressive symptoms, particularly to those that have stopped searching for jobs. What was striking though was the difference found between those searching for and those that stopped searching for jobs. The difference in the coefficient associated with those searching for and those that stopped searching for jobs suggests that it is only the mentality of not being able to gain a job that greatly increases the depression index. The actual state of being unemployed did not greatly increase the depression index, which was surprising, particularly since it's more likely that these individuals were more recently laid off. Economic variables had the least impact on depressive symptoms under both the relevant sub-model compared to other sub-models and the full model. It also had the least predictive power, with the smallest adjusted R-Squared value.
+
+The implications of racial identity on depressive symptoms however was unexpected. Although I had initially believed that whites would face the least amount of depressive symptoms, it appears that being white increases depressive symptoms. However, under the cultural model and simple linear regression, being white was not statistically significant. The language that the individual spoke however had a rather large effect on depressive symptoms. Although this variable similarly suffers from a lack of statistical significance, it shows that those that speak Spanish may face greater stressors due to their association with their culture. Speaking another language seemed to reduce depressive symptoms of an individual, although this is likely to be attributed to the wide-encompassing definition of 'other language spoken.' Cultural variables were shown to have limited effect on depressive symptoms. Although the Spanish speaking variable had the largest coefficient value out of all the models, the variable was not statistically significant, bring in doubt to the variable's validity. The other variables of the cultural model were shown only to have a moderate effect.
+
+### Model Limitations:
+
+One of the largest limitations of this study was the usage of a depression index. The depression index was constructed from 7 symptoms of depression, ranging from feeling hopeless to thoughts you were better off dead. While the index may be useful in assessing depressive symptoms, it is not necessarily indicative of depression itself. The most serious issue with the index was that these questions were asked about the past 2 weeks of an individual's behavior. Depression is known to occur periodically and triggered through certain events, rather than a constant state of being. As a result, without direct knowledge of whether the individual was diagnosed depressed, many individuals that were not experiencing a depressive episode would not be reported in the data. Those that are medicated specifically for depression may also report average or near average values, creating unreliable identification as to who may have depression.
+
+Furthermore, some of these variables, while being highly indicative of depression such as poor appetite and energy, may be observed in other mental or physical illnesses. While it may be argued that eliminating such unreliable variables would be a better course of action, it was determined that there were too few indicators that could reliably assess depression and so additional variables were needed. By adding more variables, it was believed that it would limit or offset the impact of mental or physical illnesses on the index's reliability to assess depression.
+
+The method used by the NHANES to gather data also introduced biases to the study. Only individuals 40 years or older were elgible for use in the social support dataset. As a result, the study is limited to a certain demographic. This limits the goals of this model, particularly as average depression onset is 32 years old. As seen in the univariate analyses, the distribution of variables were generally skewed, a possible result of gathering data from datasets with different purposes and undergoing complete case analysis. For example, the NHANES was focused on oversampling Mexican-Americans and low income populations. In addition, the data available categorized various ethnic groups and languages under the umbrella term 'other', creating problems from the inherent differences of these groups and languages.
+
+Model building was also restricted in this study. For both family monthly poverty index and age against depression index, a curvilinear relationship was exhibited, although for the sakes of this study's goals, this was not explored as other variables expressed some forms of linearity. 
+
+There also appeared to be a residual error within the study. Within all the models, there appeared to be some form of a linear cutoff, after which no residuals existed past. The extraordinarily colinear nature of this cutoff however suggested that this error was systematic and would not greatly affect the implications of this study.
+
+## Conclusion:
+The model shows that being male has the single largest effect on limiting an individual's depressive symptoms. Age and poverty may on certain conditions also have the largest effects on decreasing depressive symptoms as well. These factors, all of which were determined to be 'social' variables, suggest that it is  an individual's ability to interact with others that makes the greatest impact on depressive symptoms rather than the environment one is exposed to. Economic and cultural variables, both of which are highly important in the types of social interactions one is exposed to, were seen to have only a relatively small effect on one's depressive symptoms. Seeing as many of the social variables had negative coefficients, perhaps it is preventive strategies focused on forming meaningful social interactions that have a greater effect on reducing depression incidence than strategies that rely on other factors such as economic condition and cultural 
+assimilation.
+
+\newpage
+
+## Figures and Tables:
+
+```{r echo=FALSE, results='asis',message=F,warning=F}
+
+Variables=c("Presence of Support","Adequacy of Support", "Number of Close Friends","Family Monthly Poverty Index","Age","Gender","Type of Work", "Unemployed but looking for work","Unemployed and not looking for work","Race","Hispanic(non-Mexican-American)","Non-Hispanic White","Non-Hispanic Black","Other Races", "English Speaking","Spanish Speaking","Other Language Speaking","Hours Worked","Gender*Family Monthly Poverty Index")
+
+Coefficients=c(
+-1.1982,
+2.1548,
+-0.046784,
+-0.5448,
+-0.04102,
+-1.0239,
+"*",
+1.0028,
+1.1144,
+"*",
+0.56071,
+0.06247,
+0.06027,
+-0.17505,
+-0.07953,
+4.20793,
+4.20793,
+-0.022974,
+-0.42682)
+
+P_Values=c(
+'1.93E-06',
+'2.20E-16',
+'7.56E-07',
+'2.20E-16',
+'8.33E-12',
+'2.84E-12',
+'4.23E-13',
+'1.25E-01',
+'5.30E-14',
+'3.05E-01',
+'6.29E-02',
+'7.74E-01',
+'8.12E-01',
+'7.04E-01',
+'6.33E-01',
+'1.38E-01',
+'1.38E-01',
+'1.08E-12',
+'2.20E-16')
+
+Adjusted_R_Squared_Values=c(
+0.007279,
+0.04277,
+0.007882,
+0.04461,
+0.01529,
+0.01599,
+0.01837,
+"**",
+"**",
+0.0002807,
+"**",
+"**",
+"**",
+"**",
+-0.0002603,
+0.0004056,
+0.0004056,
+0.01662,
+0.03191)
+df=data.frame(Variables,Coefficients,P_Values, Adjusted_R_Squared_Values)
+
+colnames(df) = c("Variables","Coefficients","P-Values","Adjusted R-Squared Values")
+
+library(xtable)
+print(xtable(df, caption='Bivariate Analysis of Variables and Depression Index'),caption.placement='top',comment=FALSE)
+```
+$*$ Categorical variable with multiple factors
+
+** Categorical variable under the parent variable 
+
+```{r echo=FALSE, results='asis',message=F,warning=F}
+library(stargazer)
+stargazer(finaloverdata, social, economic, cultural,column.labels=c("Full Model","Social","Economic","Cultural"),omit.stat=c("rsq", "n","f"), header=FALSE, title ="Comparison of Coefficients, Standard Error, and Statistical Significance of Full and Sub-Models", dep.var.labels.include=FALSE, dep.var.caption=""
+)
+
+```
+\newpage
+
+* Additional note: Top number is coefficient and bottom is 
+standard error
+
+```{r echo=FALSE}
+par(mfrow=c(3,1))
+hist(data$dpi,main="Observed Values",xlab="Depression Index")
+hist(fitted(finaloverdata),main="Predicted Values Under Full Model",xlab="Depression Index")
+hist(fitted(social),main="Predicted Values Under Social Model",xlab="Depression Index")
+```
+
+```{r echo=FALSE}
+par(mfrow=c(2,1))
+hist(fitted(economic),main="Predicted Values Under Economic Model",xlab="Depression Index")
+hist(fitted(cultural),main="Predicted Values Under Cultural Model",xlab="Depression Index")
+```
+Figure 1. Comparing the Distribution of Fitted Values to the Depression Index
+
+\newpage
+
+## References:
+
+Belle, Deborah, and Joanne Doucet. "Poverty, Inequality, and Discrimination as Sources of Depression Among U.S. Women." Psychology of Women Quarterly 27.2 (2003): 101-13. Web. 10 Dec. 2014.
+
+Bhugra, D. "Depression in Migrants and Ethnic Minorities." Advances in Psychiatric Treatment 10.1 (2004): 13-17. Web. 9 Nov. 2014.
+
+CDC. NHANES 2007-2008 Survey. Sept.-Oct. 2009. Raw data. National, n.p.
+
+Virtanen, M., J. E. Ferrie, A. Singh-Manoux, M. J. Shipley, S. A. Stansfeld, M. G. Marmot, K. Ahola, J. Vahtera, and M. Kivimäki. "Long Working Hours and Symptoms of Anxiety and Depression: A 5-year Follow-up of the Whitehall II Study." Psychological Medicine 41.12 (2011): 2485-494. NCBI. Web. 9 Nov. 2014.
+
+"What Is Depression?" - Depression Research Clinic. Stanford School of Medicine, n.d. Web. 10 Dec. 2014.
+
+Yen, Irene H., and George A. Kaplan. "Poverty Area Residence and Changes in Depression and Perceived Health Status: Evidence from Alameda County Study." International Journal of Epidemiology 28 (1999): 90-94. Oxford Journals. 13 July 1998. Web. 9 Nov. 2014.
+
+Zimet, George D., Nancy W. Dahlem, Sara G. Zimet, and Gordon K. Farley. "The Multidimensional Scale of Perceived Social Support." Journal of Personality Assessment 52.1 (1988): 30-41. 16 Dec. 1986. Web. 9 Nov. 2014.
