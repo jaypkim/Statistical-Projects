@@ -1,0 +1,232 @@
+---
+title: "Film Availability Highly Influential in Predicting Total Gross of Film"
+author: "Jay Kim"
+date: "October 25, 2014"
+output: pdf_document
+---
+##Abstract: 
+  The study focused on identifying variables useful to and determining the impact of the variables in predicting the total gross of a film. The variables used to create such a model are: the month the film was shown in, the genre, the availability of the film to the public, the distributor, and the interaction between the distributor and the availability of the film. Through performing bivariate analyses, it was determined that the availability of films had the most impact in predicting the total gross of films whereas the month of the film had the least. The discussion and conclusion focuses on the usefulness of knowing the impact of each variable on total gross. Through such knowledge, distribution companies can predict the success of a film and react accordingly to maximize profits or minimize losses.
+
+##Introduction:
+
+  Film production and distribution is often seen as a highly risky investment. On average, such investments exceed millions of dollars, making  measuring the risks and minimizing losses a neccesity within the industry. While distribution companies are unable to affect the film's quality prior to release, they are able to control the loss through limiting promotions and availability within a region. As a result, distribution companies seek to create models based on prior data to find trends to identify films where risk is lowest and methods to maximize profits. Recognizing the factors responsible for these trends would allow distribution companies to manipulate the variables it can affect based on the film's predicted success. What are these factors and to what extent can they be used to predict the success of a film?
+
+  Based on the available data, the study focused on the month, distributor, genre, and availability (number of theaters the film was presented in) of a specified movie. Within the film industry, there are known peak periods at which films thrive in, ex. summer blockbusters. Similarly, there are what are called "dump months" where films tend to perform poorly at the box office. Since it is difficult to identify when these peak and dump periods exist on an yearly basis, the study simply divided the films based on months. The genre of the film, such as comedy, documentary, and horror, also affect the film's popularity and total gross earnings. Certain genres are known to attract large audiences such as action whereas other genres target a small but well established audience such as documentaries. There exists a high likelihood that there is some form of interaction between the distributor and the availability of the film as larger distributors have both the funds and connections to increase the theaters the film is shown in.
+
+##Methods:
+
+  To obtain the model, the program R 3.1.1 was used with RStudio 0.98.1049. Data was gathered from the website www.the-numbers.com/box-office-chart/weekend/2014/10/10. A total of 200 films were used as data for the model that featured films in every month, with a total of 65 distributors responsible for the distribution of these films. The criteria for selecting these 200 films is random selection. The website gathered data directly from distributors. 
+
+<!-- Data from www.the-numbers.com/box-office-chart/weekend/2014/10/10 no longer shows the same data. To obtain the exact data used for the study, refer to the moodle.vassar.edu course page for Math 242/342 and select the dataset "weekendBoxOffice2013.csv" or e-mail jakim@vassar.edu. The original data features a ratings variable which was gathered from metacritics.com. However, this variable was not used within the model.-->
+
+  The model was created with the variables genre, month, distributor, availability, and the interaction between availability and distributor.
+
+$$Total Gross= \beta_0 + \beta_1 Genre + \beta_2 Month + \beta_3 Distributor + \beta_4 Availability + \beta_5 Availability*Distributor$$
+
+  ```{r echo=FALSE, results='hide'}
+# Variables
+data=read.csv("weekendBoxOffice2013.csv")
+wkd=data$wkd
+dist=data$Distributor
+gen=data$Genre
+gross=data$Gross
+avail=data$Thtrs
+rat=data$rating
+tg=data$TotalGross
+days=data$Days
+mov=data$Movie
+
+# Categorical Variables
+wkds=as.Date(wkd,format="%m/%d/%y")
+months=strftime(wkds,"%m")
+month=as.factor(months)
+gens=as.factor(gen)
+distr=as.factor(dist)
+# Code for creating the multiple linear regression model
+  fit.full=lm(tg~month + gens + distr + avail + distr*avail,data=data)
+  ```
+<!--- For the model, the variable date was modified to categorize the data based on the month of the movie. This was done to better categorize the data based on the dump cycles previously mentioned as well as limit the categories to 12 rather than an extremely large number. -->
+
+<!--- Although there were several more variables that could have been used to more accurately predict total gross, it would have resulted in overfitting. Specifically, the per theater, gross, days, and rating variables were ignored. The per theater may not have any meaningful contribution to predicting total gross, as it is simply a transformation of the availability and gross variables (division). Furthermore, upon interpreting the per theater variable, it does not present a new characteristic that helps determine total gross, as it is fully dependent on the gross variable and availability. Any interpretation is already identified with the gross or availability variables. The gross variable was not used within the model due to its extraordinary collinearity with total gross. While collinearity does not generally indicate a model is wrong, the fact that most of the gross variable data were identical to the total gross was worrisome. As a result, other variables' effect on total gross would be mitigated. There is also reason to believe that the data is not accurate for gross as the source as comparisons to the given data and the data currently shown by the source reveal large discrepancies between gross and total gross. The rating variable were originally intended to be used within the model. However, the simple linear regression of ratings revealed a negative R squared value and therefore could not be used within the multiple linear regression. A negative R squared value also appeared with the variable Days. While the model originally included an interaction between distributor and genre, as distributors make a conscious effort to create a reputation of being leaders of a genre (eg. Disney avoids the horror genre), the interaction led to a disturbing amount of NA values and was perfectly collinear. Furthermore, the adjusted R squared value increased up to 97 %, which suggested overfitting.-->  
+
+  To create the model, it was necessary to check the assumptions of a multiple regression model. To do so, a residual plot was created and checked for the absence of patterns to suggest normality. After observing any possible trends within the residual plot, a plot of the raw data with the y variable as total gross and x variable of the categorical variable movie title was constructed. This plot was to check the overall shape of the data as well as note any possible influential points for future reference.
+
+ 
+  Adjusted variable plots and simple linear regressions of each term were then created to visualize and quantify the contribution of each term to the model's accuracy. To detect any multicollinearity, a scatterplot matrix was created. To verify any influential points, plots of standardized residuals that displayed the leverage of each point were created (code shown in source file).
+Testing was also done to see if an error shown with the distributor interaction was unique to the interaction with availability or if it was intrinsic to the distributor variable itself, by creating several simple linear regressions with distributor interactions with month and the amount of days the film played in theaters. Any influential points will be discarded due to their influence on the data and the model's accuracy. 
+
+<!--- While a VIF (variance inflation factor) was originally used to quanitfy the muliticollinearity, there were some errors that could not be fixed without sacrificing the model's integrity. Any interaction term involving distributor resulted in perfect multicollinearity, suggesting some error derived from the distributor variable rather than any error intrinsic to the use of the interaction term. For this reason, the interaction term distributor with availability was still used. To remedy this, the study focused on the scatterplot matrix instead, even if the scatterplot did not display the interaction term nor a fully accurate representation of months (since the days variable was modified).-->  
+
+<!---
+
+# Code for visualizing raw data
+  plot(mov,tg)
+  
+# Summary of Multiple Linear Regression Model
+  summary(fit.full)
+  
+# Plot for viewing normality and residuals
+  plot(fit.full)
+
+# Plot for viewing and identifying influential points
+  library(car)
+influencePlot(fit.full,    id.method="identify", main="Influence Plot", sub="Circle size is proportial to Cook's Distance" )
+# To know which observations are influential, use the locator on the plot and 
+# simply click on what appears to be influential points.
+# Observations 147, 69, and 70 both exceeded standardized values of the # absolute value of 2, which is the determining point of unusual 
+# standardized residuals, and cook's distance is greater than 1. Therefore, # these points will be eliminated.
+  
+  data=data[-c(147,69,70),]
+  
+# Must redo the model according to these missing values.
+  
+# Plot for viewing leverage of each point
+  plot(cooks.distance(fit.full))
+
+# Scatterplot Matrix to view multicollinearity
+  library(lattice)
+  splom(data)
+  
+# Failed attempt to use VIF to measure multicollinearity
+  vif(fit.full)
+  
+# Adjusted Variables Plot
+  avPlots(fit.full)
+  
+# Attempt at using the interaction term distributor and genre within the model
+  fit.full=lm(tg~month + gens + distr + avail + distr*avail + distr*genre,data  
+  =data)
+  summary(fit.full)
+  
+# Too many NA values and the high adjusted R squared value suggests 
+# overfitting.
+  
+# Simple Linear Regression For Each Variable
+  fit.slr_rat=lm(tg~rat)
+  summary(fit.slr_rat)
+
+ fit.slr_rat_month=lm(tg~month*rat)
+  summary(fit.slr_rat_month)
+  
+  fit.slr_rat_month=lm(tg~rat*month,data=data)
+  summary(fit.slr_rat_month)
+  
+# Discard ratings variable due to low adjusted R squared value, despite the 
+# effect of the interaction with month.
+
+# Originally believed there was an interaction between the ratings and   
+# month due to the dump month theory (http://vegasseven.com/2013/01/03
+# /cinematic-dumpster-dive/).However, the adjusted R^2 value of both ratings
+# and the interaction term suggests otherwise.
+
+  fit.slr_distr_gens=lm(tg~distr*gens)
+  summary(fit.slr_distr_gens)
+  
+# Testing if there is some error with distributor interactions or whether 
+# there actually exists perfect collinearity with distributor and 
+# availability interaction.
+  
+  fit.slr_distr_days=lm(tg~distr*days,data=data)
+  summary(fit.slr_distr_days)
+  
+  fit.slr_distr_month=lm(tg~distr*month,data=data)
+  summary(fit.slr_distr_month)
+  
+# As one may observe within the data, there are a large amount of NA   
+# values. This is not due to any error within the data but rather due to the
+# lack of information as the distributors did not release films of every genre
+# , at least not within the data available. However, the severe lack of   
+# information makes the usage of this variable questionable. 
+  
+  fit.slr_gens=lm(tg~gens,data=data)
+  summary(fit.slr_gens)
+
+  fit.slr_distr=lm(tg~distr,data=data)
+  summary(fit.slr_distr,data=data)
+
+  fit.slr_month=lm(tg~month,data=data)
+  summary(fit.slr_month)
+
+  fit.slr_avail=lm(tg~avail,data=data)
+  summary(fit.slr_avail)
+
+  fit.slr_distr_avail=lm(tg~distr*avail,data=data)
+  summary(fit.slr_distr_avail)
+  
+
+# Although there were a large amount of NA values for this interaction,
+# they were not as severe as the interaction between distributors and genre.
+# For this reason, the interaction term will be used regardless. The practical
+# significance of creating this interaction term is also used as a justificati
+# on for the usage of this interaction term. These NA values were likely 
+# generated as a result of insufficient observations per distributor, 
+# creating a bias towards distributors with more films.
+-->
+##Results
+
+  The p-value of the regression model after removing observations 147, 69, and 70 is 5.177*e-09. The adjusted R-squared value of the regression model is .6527. 
+  Through the SLRs of all the variables, the adjusted R squared of the simple linear regression model of all the variables are: .1884 for genres, .00724 for months,  .009694 for distributor, .4892 for availability, and  .386 for the distributor and availability interaction. This may be shown through Figure 1, albeit categorical variables may be inaccurate due to a lack of full representation of the categories. Since there are over 100 estimated coefficients from the multiple linear regression, they will not be all listed within the results. They are instead shown in Table 1. However, general trends will be noted. Both the distributor and genre had the highest estimated coefficients. Most of the genre's coefficients were positive while approximately half of the distributor's coefficients were negative. Months had almost entirely negative coefficients and had the third highest coefficients. The interaction term were mostly negative coefficients and had the fourth highest coefficients. The availability coefficent was the smallest but was positive. Highest refers to the absolute value of the coefficients. 
+  The standardized residual values and leverage of observations 147, 69, and 70 allow the classification of these observations as 'unusual.' There appears to be some collinearity between the availability and total gross of a film as well as genre and total gross. The collinearity appears to be stronger with availability and total gross than genre and total gross. There is missing data when the interaction term distributor and availability is introduced. 
+
+##Discussion:
+
+  The p-value is sufficiently low enough to reject the null hypothesis that the regression models's accuracy is due to chance. The R squared value is .6527, which is adequate, meaning that it does not suggest overfitting nor does it present a lack of variables. 
+
+  It is interesting to find that the availability of a film had the largest impact on total gross. This suggests that accounting for the other factors, which a distributor may recognize or control prior to release, a distributor can predict a film's success based on how available it allows the film to be. Although there was a low adjusted R squared value for distributor, suggesting that the brand of the distributor is not by itself a critical factor in predicting total gross, the interaction of a distributor and availability is highly important. This hints that as long as the distributor has the capacity to increase availability of the film, it does not matter who the distributor is.  The adjusted R square of month is also interesting as it shows that the month cannot explain the total gross of a film well, despite the dump month theory.
+  
+  The coefficients of the variables were also fascinating. Although the month does not explain total gross well, the coefficients do follow the dump month theory. That is, the months February and September suffer the largest decreases to total gross while the months March and July suffers the smallest, which are incidentally the time of summer blockbusters and the end of the winter dump. While availability and the interaction was able to explain a considerable amount of the variation within total gross, they did not have  large coefficients. This means that while they has great predictive value, they do not affect the actual total gross much. Genre and distributors had the highest coefficients, which was not surprising. A distributor's power through advertising etc. and the genre of the film such as adventure, can be important in how much it affects the total gross of the film. Particularly with genre, some genres target a broad audience while others focus on a small one. However, they were poor indicators of total gross, as the variation within genres and distributors were large, as the standard errors indicated.
+  
+  The collinearity between availability and total gross and genre and total gross is not of major concern as it is across independent and dependent variables, rather than independent variables affecting each other and thus the model's regression ability. It only suggests that there is some relationship between availability and total gross and genre and total gross, which is verified through the relatively high adjusted R squared values.
+
+  Observations 147, 69, and 70 were discarded due to the impact they had on the model. The observations did not reveal any unexpected characteristics that would've been noted and the absence of these observations increased the R squared value of the model by approximately 11%.
+
+  There were various limitations within the data. 18 observations were discarded within the regression model due to a lack of complete data from the raw data(ie, some lacked information such as distributor and rating). There were a high number of distributors (75), some of which having as little as 1 film. For future studies, the distributors should be represented more equally to ensure an accurate estimation of the distributor's impact on total gross. Furthermore, the interaction term had multiple instances where the data was not available.
+
+  The model also faces severe limitations. The interaction term of distributor and availability created several NA values for some observations. These NA values tended to coincide with the lesser known distributors such as Wolfe Releasing. Noting that these lesser known distributors are therefore not accounted for, there is a bias within the model towards distributors with more films in the data.
+
+  The interaction term also created more difficulties as it faced an error when trying to measure collinearity with VIF (variance inflation factor). As a result, collinearity was measured with a scatterplot matrix. The scatterplot matrix both does not quantify collinearity to a point where it can be objectively determined and is missing two variables, months and the interaction term. The collinearities of these variables are thus unknown. Regardless of the collinearity issue the interaction term presented, the interaction term was still used for various reasons. The interaction term was statistically significant with a notable contribution to the adjusted R squared value. In terms of practical application, the inclusion of the interaction term makes logical sense. Furthermore, upon further testing, the collinearity issue occurred with any interaction with the distributor variable, suggesting that the problem does not exist with the usage of the term but rather within the distributor variable itself.
+
+
+##Conclusion:
+
+  The model shows that the availability of the movie plays the largest role in predicting the total gross of the movie. The interaction between distributor and availability play the second largest role. These factors, which distributors are able to easily account for and control, allow greater insight into the strategies that distributors use to maximize profit. Through increasing availability of the films, distributors are better able to predict the success of a film. Through finding the large coefficients of genres and months, it becomes clearer as to why distributors target specific months and genres over others. Even though there is great variation between genres and months, certain genres and months have massive benefits relative to others. Although the model does explain certain strategies of distributors, it should be noted that the data was limited. That is, distributors often have access to more data that measure more variables. For future studies, it would be interesting to have access to such information to create a model based on factors that the industry uses, rather than ones available through a public website.
+
+## Figures and Tables:
+
+  ```{r echo=FALSE}
+  fit.slr_gens=lm(tg~gens,data=data)
+
+  fit.slr_distr=lm(tg~distr,data=data)
+
+  fit.slr_month=lm(tg~month,data=data)
+
+  fit.slr_avail=lm(tg~avail,data=data)
+
+plot(mov,tg,main="Raw Data with SLR of Variables",xlab="Movie Title", ylab="Total Gross")
+
+abline(fit.slr_gens,col="blue")
+abline(fit.slr_month,col="red")
+abline(fit.slr_avail,col="yellow")
+abline(fit.slr_distr,color="green")
+
+```
+    Figure 1
+    
+Legend: 
+Blue= SLR of Genres
+Red= SLR of Months
+Yellow= SLR of Availability
+Green= SLR of Distributor
+
+**Lines are restricted to representing only a limited amount of the categorical variables. Caution must be taken when looking at the lines that they only represent 2 types of the category, and depending on the variation within the categories, the category SLR may be more accurate.
+
+  ```{r echo=FALSE}
+summary(fit.full)$coeff
+  ```
+  
+  Table 1
+##References:
+
+http://www.statmethods.net/stats/rdiagnostics.html
+
+http://vegasseven.com/2013/01/03/cinematic-dumpster-dive/
